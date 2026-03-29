@@ -2,15 +2,15 @@
   "crons": [
     {
       "path": "/api/discover/trigger",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/discover/enrich/trigger",
-      "schedule": "10 * * * *"
+      "schedule": "30 0 * * *"
     },
     {
       "path": "/api/discover/age-topics/trigger",
-      "schedule": "20 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
