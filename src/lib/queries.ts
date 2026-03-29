@@ -29,7 +29,13 @@ export async function getTopics(): Promise<TopicSummary[]> {
       .select("topic_id"),
   ]);
 
-  if (topicsResult.error) throw topicsResult.error;
+  if (topicsResult.error) {
+    // Do not crash the home page on a DB error (e.g. column not yet migrated).
+    // Log server-side and return empty so users see the empty state instead of
+    // a white-screen error. The DB migration will resolve the root cause.
+    console.error('[getTopics] query error:', topicsResult.error.message);
+    return [];
+  }
 
   const factCheckRows = (factCheckResult.data ?? []) as FactCheckRow[];
   const factCheckTopicIds = new Set(factCheckRows.map((r) => r.topic_id));
