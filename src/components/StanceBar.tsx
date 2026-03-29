@@ -14,7 +14,11 @@ interface Props {
 
 export function StanceBar({ distribution }: Props) {
   const total = Object.values(distribution).reduce((s, n) => s + n, 0);
-  if (total === 0) return null;
+  if (total === 0) {
+    return (
+      <p className="text-xs text-slate-600">データ収集中...</p>
+    );
+  }
 
   return (
     <div className="space-y-2">

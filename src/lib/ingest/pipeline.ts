@@ -100,20 +100,48 @@ async function getOrCreateTopic(config: TopicConfig): Promise<string | null> {
 }
 
 // ----------------------------------------------------------------
-// Recompute and write article_count + source_count on the topic row
+// Recompute and write article_count, source_count, and
+// stance_distribution on the topic row.
+//
+// stance_distribution is stored as JSONB so getTopics() can read
+// it without a separate article_classifications join, keeping the
+// list view O(1) per topic regardless of article volume.
+//
+// Written as null when no classifications exist yet, so the UI can
+// show "データ収集中" instead of an empty bar.
 // ----------------------------------------------------------------
 export async function syncTopicCounts(topicId: string): Promise<void> {
-  const { data: rows } = await supabase
-    .from('articles')
-    .select('source_id')
-    .eq('topic_id', topicId);
+  const [articlesResult, classResult] = await Promise.all([
+    supabase
+      .from('articles')
+      .select('source_id')
+      .eq('topic_id', topicId),
+    supabase
+      .from('article_classifications')
+      .select('stance')
+      .eq('topic_id', topicId),
+  ]);
 
-  const articleCount = (rows ?? []).length;
-  const sourceCount = new Set((rows ?? []).map((r: any) => r.source_id)).size;
+  const articleRows = articlesResult.data ?? [];
+  const articleCount = articleRows.length;
+  const sourceCount  = new Set(articleRows.map((r: any) => r.source_id as string)).size;
+
+  const dist: Record<string, number> = {
+    support: 0, challenge: 0, report_only: 0, mixed: 0, unclear: 0,
+  };
+  for (const r of (classResult.data ?? [])) {
+    const s = (r as any).stance as string;
+    if (s in dist) dist[s]++;
+  }
+  const hasData = Object.values(dist).some((v) => v > 0);
 
   await supabase
     .from('topics')
-    .update({ article_count: articleCount, source_count: sourceCount })
+    .update({
+      article_count:       articleCount,
+      source_count:        sourceCount,
+      stance_distribution: hasData ? dist : null,
+    })
     .eq('id', topicId);
 }
 

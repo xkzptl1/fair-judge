@@ -8,21 +8,21 @@ import type {
   Stance,
 } from "@/types/topic";
 
-type ClassificationRow = { topic_id: string; stance: string };
 type FactCheckRow = { topic_id: string };
 
+const ZERO_DIST: StanceDistribution = {
+  support: 0, challenge: 0, report_only: 0, mixed: 0, unclear: 0,
+};
+
 export async function getTopics(): Promise<TopicSummary[]> {
-  const [topicsResult, stanceResult, factCheckResult] = await Promise.all([
+  // stance_distribution is precomputed by syncTopicCounts() during ingest,
+  // so no separate article_classifications join is needed here.
+  const [topicsResult, factCheckResult] = await Promise.all([
     supabase
       .from("topics")
-      .select("id, title, summary, article_count, source_count, last_updated_at, first_seen_at, category, overseas_ratio")
+      .select("id, title, summary, article_count, source_count, last_updated_at, first_seen_at, category, overseas_ratio, stance_distribution")
       .eq("is_active", true)
       .order("last_updated_at", { ascending: false }),
-
-    supabase
-      .from("article_classifications")
-      .select("topic_id, stance")
-      .limit(50000),
 
     supabase
       .from("fact_checks")
@@ -31,19 +31,8 @@ export async function getTopics(): Promise<TopicSummary[]> {
 
   if (topicsResult.error) throw topicsResult.error;
 
-  const classifications = (stanceResult.data ?? []) as ClassificationRow[];
   const factCheckRows = (factCheckResult.data ?? []) as FactCheckRow[];
   const factCheckTopicIds = new Set(factCheckRows.map((r) => r.topic_id));
-
-  // Group stance counts by topic_id
-  const stanceMap = new Map<string, StanceDistribution>();
-  for (const row of classifications) {
-    if (!stanceMap.has(row.topic_id)) {
-      stanceMap.set(row.topic_id, { support: 0, challenge: 0, report_only: 0, mixed: 0, unclear: 0 });
-    }
-    const dist = stanceMap.get(row.topic_id)!;
-    dist[row.stance as Stance]++;
-  }
 
   return (topicsResult.data ?? []).map((t) => ({
     id: t.id,
@@ -52,7 +41,8 @@ export async function getTopics(): Promise<TopicSummary[]> {
     articleCount: t.article_count,
     sourceCount: t.source_count,
     lastUpdatedAt: t.last_updated_at,
-    stanceDistribution: stanceMap.get(t.id) ?? { support: 0, challenge: 0, report_only: 0, mixed: 0, unclear: 0 },
+    // null when no classifications exist yet → StanceBar shows "データ収集中"
+    stanceDistribution: (t.stance_distribution as StanceDistribution | null) ?? ZERO_DIST,
     hasFactCheck: factCheckTopicIds.has(t.id),
     category: t.category ?? 'その他',
     overseasRatio: t.overseas_ratio ?? 0,
