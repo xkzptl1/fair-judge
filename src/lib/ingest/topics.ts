@@ -7,6 +7,7 @@ export interface TopicConfig {
   mainIssues: string[];    // Japanese bullet points
   keywordsJa: string[];    // Japanese RSS search terms (hl=ja&gl=JP)
   keywordsEn: string[];    // English RSS search terms (hl=en&gl=US)
+  keywordsKokkai?: string[]; // Tier 2: 国会会議録API search terms
   discoveryMode: DiscoveryMode;
   overseasRatio: number;
 }
@@ -20,6 +21,7 @@ export const INGEST_TOPICS: TopicConfig[] = [
     mainIssues: ['規制の範囲と強度', '技術革新との両立', '国際的な足並みの乱れ'],
     keywordsJa: ['AI 規制 日本', '生成AI 規制'],
     keywordsEn: ['AI regulation Japan', 'generative AI policy'],
+    keywordsKokkai: ['AI規制', '生成AI'],
     discoveryMode: 'mixed',
     overseasRatio: 0.6,
   },
@@ -30,6 +32,7 @@ export const INGEST_TOPICS: TopicConfig[] = [
     mainIssues: ['関税の対象品目と水準', '自動車・農産物への影響', '日本の交渉戦略'],
     keywordsJa: ['日米 関税', '米国 関税 日本'],
     keywordsEn: ['US Japan tariff', 'Japan trade deal'],
+    keywordsKokkai: ['日米貿易', '関税'],
     discoveryMode: 'mixed',
     overseasRatio: 0.55,
   },
@@ -40,6 +43,7 @@ export const INGEST_TOPICS: TopicConfig[] = [
     mainIssues: ['食料品・エネルギー価格の高止まり', '賃金上昇との格差', '政府の支援策の効果'],
     keywordsJa: ['物価上昇 家計', '食料品 値上がり'],
     keywordsEn: [],
+    keywordsKokkai: ['物価上昇', '食料品価格'],
     discoveryMode: 'domestic',
     overseasRatio: 0.15,
   },
@@ -60,6 +64,41 @@ export const INGEST_TOPICS: TopicConfig[] = [
     mainIssues: ['復興の進捗と残された課題', '移住・定住支援策', '防災インフラの整備'],
     keywordsJa: ['能登 復興', '能登半島 復興 支援'],
     keywordsEn: [],
+    discoveryMode: 'domestic',
+    overseasRatio: 0.05,
+  },
+
+  // ── Domestic political topics ────────────────────────────────
+  {
+    title: '防衛費増額と安全保障政策',
+    summary: '日本政府はGDP比2%への防衛費増額を掲げ、安全保障政策の転換が進んでいる。反撃能力（敵基地攻撃能力）の整備や日米同盟の深化をめぐり、憲法の平和主義との整合性を含む議論が続いている。',
+    category: '安全保障',
+    mainIssues: ['防衛費の財源（増税・国債）', '反撃能力と専守防衛の関係', '日米同盟のあり方'],
+    keywordsJa: ['防衛費 増額 日本', '安全保障 反撃能力'],
+    keywordsEn: ['Japan defense budget', 'Japan military policy'],
+    keywordsKokkai: ['防衛費', '反撃能力', '安全保障'],
+    discoveryMode: 'mixed',
+    overseasRatio: 0.35,
+  },
+  {
+    title: '少子化対策と子育て支援',
+    summary: '出生率の低下が続くなか、「こども家庭庁」が主導する少子化対策の効果と財源をめぐる議論が国会・メディアで続いている。保育の質・量の確保や男性育休の普及も焦点となっている。',
+    category: '社会',
+    mainIssues: ['財源の確保と社会保険料への転嫁', '保育所の量と質の両立', '男性育休の取得促進'],
+    keywordsJa: ['少子化対策 こども家庭庁', '子育て支援 政策'],
+    keywordsEn: ['Japan birth rate policy', 'Japan childcare support'],
+    keywordsKokkai: ['少子化', 'こども家庭庁', '子育て支援'],
+    discoveryMode: 'domestic',
+    overseasRatio: 0.1,
+  },
+  {
+    title: '政治資金改革と政治とカネ',
+    summary: '政治資金パーティー収入の不記載問題を契機に、政治資金規正法の改正や政党助成制度の見直しをめぐる議論が続いている。透明性確保と政治倫理の再構築が問われている。',
+    category: '政治',
+    mainIssues: ['政治資金の透明化', 'パーティー収入の規制強化', '政治倫理審査会の実効性'],
+    keywordsJa: ['政治資金 改革 国会', '政治とカネ'],
+    keywordsEn: ['Japan political funds reform'],
+    keywordsKokkai: ['政治資金', '政治資金規正法'],
     discoveryMode: 'domestic',
     overseasRatio: 0.05,
   },

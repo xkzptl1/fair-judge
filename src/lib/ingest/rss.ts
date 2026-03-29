@@ -209,3 +209,72 @@ export async function fetchNewsRss(
 
 // Expose cache TTL for logging
 export const RSS_CACHE_TTL_MIN = CACHE_TTL_MS / 60_000;
+
+// ----------------------------------------------------------------
+// Direct RSS fetch — for feeds that don't go through Google News.
+// Used by Tier 1 sources (NHK, newspapers) for topic ingestion.
+// Unlike fetchNewsRss, the feed URL is used directly and the caller
+// must supply the fallback source domain (e.g. 'nhk.or.jp').
+// ----------------------------------------------------------------
+export async function fetchDirectRss(
+  feedUrl: string,
+  fallbackDomain: string,
+  fallbackDisplayName: string
+): Promise<RssItem[]> {
+  const cacheKey = `direct::${feedUrl}`;
+
+  const cached = cacheGet(cacheKey);
+  if (cached) {
+    console.log(`[rss] cache hit direct "${feedUrl}" — ${cached.length} items`);
+    return cached;
+  }
+
+  console.log(`[rss] fetching direct feed "${feedUrl}"`);
+  const xml = await fetchWithRetry(feedUrl, feedUrl);
+  if (!xml) {
+    console.warn(`[rss] direct feed "${feedUrl}" returned no data`);
+    return [];
+  }
+
+  let parsed: any;
+  try {
+    parsed = parser.parse(xml);
+  } catch (e) {
+    console.warn(`[rss] XML parse error for direct feed "${feedUrl}":`, e);
+    return [];
+  }
+
+  const items: any[] = parsed?.rss?.channel?.item ?? [];
+
+  const result = items
+    .map((item): RssItem | null => {
+      const rawTitle: string = typeof item.title === 'string' ? item.title : '';
+      const title = stripHtml(rawTitle).trim();
+      if (!title) return null;
+
+      const url: string = typeof item.link === 'string' ? item.link.trim() : '';
+      if (!url) return null;
+
+      const sourceDomain = extractDomain(url) || fallbackDomain;
+      const sourceDisplayName = fallbackDisplayName;
+      if (!sourceDomain) return null;
+
+      let publishedAt: string;
+      try {
+        publishedAt = new Date(String(item.pubDate ?? '')).toISOString();
+        if (isNaN(new Date(publishedAt).getTime())) throw new Error();
+      } catch {
+        publishedAt = new Date().toISOString();
+      }
+
+      const rawDesc: string = typeof item.description === 'string' ? item.description : '';
+      const summary = rawDesc ? stripHtml(rawDesc).slice(0, 400) || null : null;
+
+      return { title, url, sourceDomain, sourceDisplayName, publishedAt, summary };
+    })
+    .filter((item): item is RssItem => item !== null);
+
+  console.log(`[rss] direct feed "${feedUrl}" — ${result.length} items`);
+  cacheSet(cacheKey, result);
+  return result;
+}

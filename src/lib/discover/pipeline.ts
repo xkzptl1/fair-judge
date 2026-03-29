@@ -5,11 +5,21 @@ import { scoreCluster, type ScoredCandidate } from './scorer';
 
 // ----------------------------------------------------------------
 // Top-story RSS feeds — no keyword, just trending
+//
+// Tier 0: Google News aggregated (all locales)
+// Tier 1: NHK direct RSS — authoritative Japanese public broadcaster;
+//         articles appear here before Google News aggregates them.
+//         No <source> element in NHK RSS — domain derived from <link>.
 // ----------------------------------------------------------------
 const TOP_STORY_FEEDS = [
+  // ── Tier 0: Google News ────────────────────────────────────────
   { url: 'https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja',  locale: 'ja'    },
   { url: 'https://news.google.com/rss?hl=en&gl=US&ceid=US:en',  locale: 'en-US' },
   { url: 'https://news.google.com/rss?hl=en&gl=GB&ceid=GB:en',  locale: 'en-GB' },
+  // ── Tier 1: NHK direct RSS ─────────────────────────────────────
+  { url: 'https://www3.nhk.or.jp/rss/news/cat4.xml', locale: 'ja' },  // 政治
+  { url: 'https://www3.nhk.or.jp/rss/news/cat5.xml', locale: 'ja' },  // 経済・ビジネス
+  { url: 'https://www3.nhk.or.jp/rss/news/cat6.xml', locale: 'ja' },  // 国際
 ] as const;
 
 // ----------------------------------------------------------------

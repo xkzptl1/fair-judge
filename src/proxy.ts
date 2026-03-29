@@ -49,7 +49,7 @@ function getBasicPassword(req: NextRequest): string | null {
   }
 }
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
 
   // ── Cron trigger routes ───────────────────────────────────────

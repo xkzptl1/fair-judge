@@ -21,7 +21,8 @@ export async function getTopics(): Promise<TopicSummary[]> {
 
     supabase
       .from("article_classifications")
-      .select("topic_id, stance"),
+      .select("topic_id, stance")
+      .limit(50000),
 
     supabase
       .from("fact_checks")

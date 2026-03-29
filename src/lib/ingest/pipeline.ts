@@ -1,7 +1,29 @@
 import { supabase } from '../supabase';
 import { INGEST_TOPICS, type TopicConfig } from './topics';
-import { fetchNewsRss, type RssItem } from './rss';
+import { fetchNewsRss, fetchDirectRss, type RssItem } from './rss';
 import { classifyArticle } from './classifier';
+import { fetchKokkaiSpeeches } from './kokkai';
+
+// ----------------------------------------------------------------
+// Tier 1: NHK category feeds used as supplemental sources per topic
+// Mapped by discoveryMode so domestic topics get domestic feeds,
+// global topics skip NHK (they're unlikely to appear there).
+// ----------------------------------------------------------------
+const NHK_FEEDS: Record<string, { url: string; display: string }[]> = {
+  politics:  [{ url: 'https://www3.nhk.or.jp/rss/news/cat4.xml', display: 'NHK政治' }],
+  economy:   [{ url: 'https://www3.nhk.or.jp/rss/news/cat5.xml', display: 'NHK経済' }],
+  society:   [{ url: 'https://www3.nhk.or.jp/rss/news/cat2.xml', display: 'NHK社会' }],
+  intl:      [{ url: 'https://www3.nhk.or.jp/rss/news/cat6.xml', display: 'NHK国際' }],
+};
+
+const CATEGORY_TO_NHK_FEEDS: Record<string, typeof NHK_FEEDS[string]> = {
+  '政治':       NHK_FEEDS.politics,
+  '安全保障':   [...NHK_FEEDS.politics, ...NHK_FEEDS.intl],
+  '経済':       NHK_FEEDS.economy,
+  'AI・テック': NHK_FEEDS.economy,
+  '社会':       NHK_FEEDS.society,
+  '国際':       NHK_FEEDS.intl,
+};
 
 export interface TopicResult {
   topic: string;
@@ -96,7 +118,7 @@ export async function syncTopicCounts(topicId: string): Promise<void> {
 }
 
 // ----------------------------------------------------------------
-// Fetch RSS items according to discoveryMode
+// Fetch RSS items according to discoveryMode + Tier 1/2 supplements
 // Rate limiting and retry are handled inside fetchNewsRss.
 // ----------------------------------------------------------------
 async function fetchAllItems(
@@ -109,6 +131,7 @@ async function fetchAllItems(
   const jaKeywords = mode !== 'global' ? config.keywordsJa : [];
   const enKeywords = mode !== 'domestic' ? config.keywordsEn : [];
 
+  // ── Google News RSS (existing) ──────────────────────────────
   for (const keyword of jaKeywords) {
     try {
       const items = await fetchNewsRss(keyword, 'ja');
@@ -132,6 +155,41 @@ async function fetchAllItems(
       const msg = `RSS en "${keyword}": ${e}`;
       console.error(`[pipeline] ${msg}`);
       errors.push(msg);
+    }
+  }
+
+  // ── Tier 1: NHK direct feeds (domestic + mixed topics only) ──
+  if (mode !== 'global') {
+    const nhkFeeds = CATEGORY_TO_NHK_FEEDS[config.category] ?? [];
+    for (const feed of nhkFeeds) {
+      try {
+        const items = await fetchDirectRss(feed.url, 'nhk.or.jp', feed.display);
+        let added = 0;
+        for (const item of items) {
+          if (!seen.has(item.url)) { seen.set(item.url, item); added++; }
+        }
+        if (added > 0) console.log(`[pipeline] NHK "${feed.display}" added ${added} items`);
+      } catch (e) {
+        console.warn(`[pipeline] NHK feed error (${feed.url}):`, e);
+        // Non-fatal — NHK is supplemental
+      }
+    }
+  }
+
+  // ── Tier 2: 国会会議録 (domestic + mixed topics with kokkai keywords) ──
+  if (mode !== 'global' && config.keywordsKokkai?.length) {
+    for (const keyword of config.keywordsKokkai) {
+      try {
+        const speeches = await fetchKokkaiSpeeches(keyword, 5);
+        let added = 0;
+        for (const item of speeches) {
+          if (!seen.has(item.url)) { seen.set(item.url, item); added++; }
+        }
+        if (added > 0) console.log(`[pipeline] Kokkai "${keyword}" added ${added} speeches`);
+      } catch (e) {
+        console.warn(`[pipeline] Kokkai error for "${keyword}":`, e);
+        // Non-fatal — Kokkai is supplemental
+      }
     }
   }
 
