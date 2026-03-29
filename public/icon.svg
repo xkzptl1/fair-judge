@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#0f172a"/>
+  <!-- Scales of justice -->
+  <g stroke="#e2e8f0" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Vertical pole -->
+    <line x1="96" y1="38" x2="96" y2="154" stroke-width="7"/>
+    <!-- Horizontal beam -->
+    <line x1="46" y1="66" x2="146" y2="66" stroke-width="7"/>
+    <!-- Left arm chain -->
+    <line x1="58" y1="66" x2="58" y2="96" stroke-width="5"/>
+    <!-- Right arm chain -->
+    <line x1="134" y1="66" x2="134" y2="96" stroke-width="5"/>
+    <!-- Left pan -->
+    <path d="M40 96 Q58 114 76 96" stroke-width="6"/>
+    <!-- Right pan -->
+    <path d="M116 96 Q134 114 152 96" stroke-width="6"/>
+    <!-- Base -->
+    <line x1="74" y1="154" x2="118" y2="154" stroke-width="7"/>
+  </g>
+</svg>

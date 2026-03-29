@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/discover/trigger",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/discover/enrich/trigger",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/discover/age-topics/trigger",
+      "schedule": "20 * * * *"
+    }
+  ]
+}
