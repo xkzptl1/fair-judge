@@ -16,7 +16,7 @@ export function StanceBar({ distribution }: Props) {
   const total = Object.values(distribution).reduce((s, n) => s + n, 0);
   if (total === 0) {
     return (
-      <p className="text-xs text-slate-600">データ収集中...</p>
+      <p className="text-xs text-slate-500">データ収集中...</p>
     );
   }
 
