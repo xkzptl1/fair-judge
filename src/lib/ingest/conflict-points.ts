@@ -1,14 +1,15 @@
 // ----------------------------------------------------------------
-// Conflict-points generation (Phase 2 Evolution)
+// Topic analysis LLM generation (Phase 2 Evolution)
 //
-// Takes the articles for a topic and asks the LLM to surface
-// 3–5 concise opposing viewpoints — the "where interpretations
-// diverge" layer that is the core value proposition of Fair Judge.
+// Three fields generated per topic from article corpus:
+//   conflict_points   — 3–5 opposing viewpoints (home + detail)
+//   causal_structure  — 1–3 step causal chain (detail only)
+//   japan_impact      — Japan-specific impact, null if irrelevant (detail only)
 //
 // Safe by design:
-//   - Empty array written on any error (no null, no crash)
-//   - Skip if already generated (idempotent by default)
-//   - Max 15 articles fed to the LLM to stay within token limits
+//   - Empty / null written on any LLM error (no crash)
+//   - Idempotent: skips topics that already have all three fields set
+//   - Max 15 articles fed per call to stay within token limits
 // ----------------------------------------------------------------
 
 import { supabase } from '@/lib/supabase';
@@ -19,100 +20,153 @@ interface ArticleRow {
   summary: string | null;
 }
 
-async function generate(
-  topicTitle: string,
-  articles: ArticleRow[]
-): Promise<string[]> {
-  if (articles.length === 0) return [];
+interface AnalysisOutput {
+  conflict_points:  string[];
+  causal_structure: string | null;
+  japan_impact:     string | null;
+}
 
-  const selected = articles
+// ----------------------------------------------------------------
+// Build shared article context string (reused across prompts)
+// ----------------------------------------------------------------
+function buildArticleList(articles: ArticleRow[]): string {
+  return articles
     .filter((a) => a.title.trim().length > 0)
-    .slice(0, 15);
-
-  if (selected.length === 0) return [];
-
-  const articleList = selected
+    .slice(0, 15)
     .map((a, i) => {
       const summary = a.summary ? `\n   ${a.summary.slice(0, 120)}` : '';
       return `${i + 1}. ${a.title}${summary}`;
     })
     .join('\n\n');
+}
+
+// ----------------------------------------------------------------
+// Single LLM call that returns all three fields at once.
+// Combining into one call keeps costs low and maintains coherence.
+// ----------------------------------------------------------------
+async function generateAnalysis(
+  topicTitle: string,
+  articles: ArticleRow[]
+): Promise<AnalysisOutput> {
+  const empty: AnalysisOutput = { conflict_points: [], causal_structure: null, japan_impact: null };
+  if (articles.length === 0) return empty;
+
+  const articleList = buildArticleList(articles);
+  if (!articleList) return empty;
 
   const systemPrompt = `あなたはメディア分析の専門家です。
-複数の記事タイトルと要約から、同じ話題に関する「解釈の対立点」を3〜5つ抽出してください。
+複数の記事を分析し、以下の3つを日本語で生成してください。
 
-ルール:
-- 対立点は「〜か、それとも〜か」という構造で端的に表現してください
-- 日本語で出力してください
-- 各対立点は15〜40文字程度で簡潔に
-- 冗長な説明・重複・体言止めの羅列は不要です
-- JSON形式で返してください: { "conflict_points": ["...", "...", "..."] }`;
+1. conflict_points（対立点）: 3〜5つの解釈の対立点
+   - 「〜か、それとも〜か」という構造で端的に
+   - 各15〜40文字、冗長・重複なし
+
+2. causal_structure（因果構造）: 1〜3ステップの因果連鎖
+   - 矢印「→」でつないだ1文
+   - 例: "貿易摩擦 → 企業投資の縮小 → 雇用への影響"
+
+3. japan_impact（日本への影響）: 日本への具体的な影響を1〜2文
+   - 日本と直接関係がない場合はnullを返す
+
+JSON形式で返してください:
+{
+  "conflict_points": ["...", "..."],
+  "causal_structure": "A → B → C",
+  "japan_impact": "..." または null
+}`;
 
   const userPrompt = `トピック: ${topicTitle}\n\n記事一覧:\n${articleList}`;
 
   const raw = await callLLM(systemPrompt, userPrompt);
-  const parsed = JSON.parse(raw) as { conflict_points?: unknown };
-  const points = parsed.conflict_points;
-  if (!Array.isArray(points)) return [];
-  return (points as unknown[])
-    .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
-    .slice(0, 5);
+  const parsed = JSON.parse(raw) as Partial<AnalysisOutput>;
+
+  const conflict_points = Array.isArray(parsed.conflict_points)
+    ? (parsed.conflict_points as unknown[])
+        .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+        .slice(0, 5)
+    : [];
+
+  const causal_structure =
+    typeof parsed.causal_structure === 'string' && parsed.causal_structure.trim().length > 0
+      ? parsed.causal_structure.trim()
+      : null;
+
+  const japan_impact =
+    typeof parsed.japan_impact === 'string' && parsed.japan_impact.trim().length > 0
+      ? parsed.japan_impact.trim()
+      : null;
+
+  return { conflict_points, causal_structure, japan_impact };
 }
 
 // ----------------------------------------------------------------
-// Update a single topic's conflict_points.
+// Update a single topic's analysis fields.
 // Pass force=true to regenerate even if already set.
 // ----------------------------------------------------------------
-export async function updateConflictPoints(
+export async function updateTopicAnalysis(
   topicId: string,
   { force = false }: { force?: boolean } = {}
-): Promise<{ points: string[]; skipped: boolean }> {
-  // Fetch topic + existing value
+): Promise<{ skipped: boolean; conflict_points: string[] }> {
   const topicResult = await supabase
     .from('topics')
-    .select('title, conflict_points')
+    .select('title, conflict_points, causal_structure, japan_impact')
     .eq('id', topicId)
     .single();
 
   if (topicResult.error || !topicResult.data) {
-    return { points: [], skipped: true };
+    return { skipped: true, conflict_points: [] };
   }
 
-  const existing = (topicResult.data.conflict_points as string[] | null) ?? [];
-  if (!force && existing.length > 0) {
-    return { points: existing, skipped: true };
+  const t = topicResult.data as {
+    title: string;
+    conflict_points: string[] | null;
+    causal_structure: string | null;
+    japan_impact: string | null;
+  };
+
+  const alreadyDone =
+    (t.conflict_points ?? []).length > 0 &&
+    t.causal_structure !== null &&
+    t.japan_impact !== null;
+
+  if (!force && alreadyDone) {
+    return { skipped: true, conflict_points: t.conflict_points ?? [] };
   }
 
-  // Fetch articles
   const articlesResult = await supabase
     .from('articles')
     .select('title, summary')
     .eq('topic_id', topicId);
 
   const articles: ArticleRow[] = (articlesResult.data ?? []).map((a: any) => ({
-    title: a.title as string,
+    title:   a.title as string,
     summary: a.summary as string | null,
   }));
 
-  let points: string[] = [];
+  let analysis: AnalysisOutput = { conflict_points: [], causal_structure: null, japan_impact: null };
   try {
-    points = await generate(topicResult.data.title, articles);
+    analysis = await generateAnalysis(t.title, articles);
   } catch (e) {
-    console.error(`[conflict-points] LLM error for topic ${topicId}:`, e);
-    // Safe fallback — store empty array, not null
-    points = [];
+    console.error(`[topic-analysis] LLM error for topic ${topicId}:`, e);
   }
 
   await supabase
     .from('topics')
-    .update({ conflict_points: points })
+    .update({
+      conflict_points:  analysis.conflict_points,
+      causal_structure: analysis.causal_structure,
+      japan_impact:     analysis.japan_impact,
+    })
     .eq('id', topicId);
 
-  return { points, skipped: false };
+  return { skipped: false, conflict_points: analysis.conflict_points };
 }
 
+// Back-compat alias used by the existing API route
+export const updateConflictPoints = updateTopicAnalysis;
+
 // ----------------------------------------------------------------
-// Batch: run for all active topics missing conflict_points.
+// Batch: process active topics missing any analysis field.
 // Cap at maxTopics per run to stay within serverless time limits.
 // ----------------------------------------------------------------
 export async function batchUpdateConflictPoints(
@@ -124,8 +178,7 @@ export async function batchUpdateConflictPoints(
     .eq('is_active', true)
     .limit(maxTopics);
 
-  // Without force, only process topics with empty conflict_points
-  // Supabase PostgREST: filter where array = '{}'
+  // Without force, only fetch topics where conflict_points is still empty
   const result = force
     ? await query
     : await query.eq('conflict_points', '{}');
@@ -136,11 +189,11 @@ export async function batchUpdateConflictPoints(
 
   for (const row of rows) {
     try {
-      const outcome = await updateConflictPoints(row.id, { force });
+      const outcome = await updateTopicAnalysis(row.id, { force });
       if (outcome.skipped) skipped++;
       else processed++;
     } catch (e) {
-      console.error(`[conflict-points] unexpected error for ${row.id}:`, e);
+      console.error(`[topic-analysis] unexpected error for ${row.id}:`, e);
       errors++;
     }
   }

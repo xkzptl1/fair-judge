@@ -92,6 +92,16 @@ export default async function TopicDetailPage({
         </section>
       )}
 
+      {/* Causal structure — why this is happening */}
+      {topic.causalStructure && (
+        <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            なぜ起きているか
+          </p>
+          <p className="text-sm leading-relaxed text-slate-300">{topic.causalStructure}</p>
+        </div>
+      )}
+
       {/* Divider */}
       <hr className="my-6 border-slate-800" />
 
@@ -110,6 +120,16 @@ export default async function TopicDetailPage({
         </h2>
         <StanceTabs articlesByStance={articlesByStance} defaultStance={defaultStance} />
       </section>
+
+      {/* Japan impact — bottom of page, only when relevant */}
+      {topic.japanImpact && (
+        <div className="mt-6 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            日本への影響
+          </p>
+          <p className="text-sm leading-relaxed text-slate-400">{topic.japanImpact}</p>
+        </div>
+      )}
     </main>
   );
 }

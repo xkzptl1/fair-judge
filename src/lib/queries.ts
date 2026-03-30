@@ -80,7 +80,7 @@ export async function getTopicDetail(id: string): Promise<TopicDetail | null> {
   const [topicResult, articlesResult, factChecksResult] = await Promise.all([
     supabase
       .from("topics")
-      .select("id, title, summary, main_issues, conflict_points, article_count, source_count, last_updated_at")
+      .select("id, title, summary, main_issues, conflict_points, causal_structure, japan_impact, article_count, source_count, last_updated_at")
       .eq("id", id)
       .single(),
 
@@ -137,6 +137,8 @@ export async function getTopicDetail(id: string): Promise<TopicDetail | null> {
     summary: topic.summary,
     mainIssues: (topic.main_issues as string[] | null) ?? [],
     conflictPoints: (topic.conflict_points as string[] | null) ?? [],
+    causalStructure: (topic.causal_structure as string | null) ?? null,
+    japanImpact: (topic.japan_impact as string | null) ?? null,
     articleCount: topic.article_count,
     sourceCount: topic.source_count,
     lastUpdatedAt: topic.last_updated_at,
