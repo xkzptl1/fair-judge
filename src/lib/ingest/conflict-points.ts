@@ -57,9 +57,15 @@ async function generateAnalysis(
   const systemPrompt = `あなたはメディア分析の専門家です。
 複数の記事を分析し、以下の3つを日本語で生成してください。
 
-1. conflict_points（対立点）: 3〜5つの解釈の対立点
-   - 「〜か、それとも〜か」という構造で端的に
-   - 各15〜40文字、冗長・重複なし
+1. conflict_points（対立点）: 3〜5つの対立軸
+   厳格なルール:
+   - 必ず「A vs B」形式で書くこと（日本語で）
+   - AとBはそれぞれ短い名詞句（最大7語程度）
+   - 文章・説明・「〜か」形式は禁止
+   - 両辺を同じ抽象度で揃えること
+   - 具体的な政策レベルの対立を優先すること
+   良い例: "経済成長 vs 国家安全保障" / "短期的救済 vs 長期的持続性" / "中央集権 vs 地方自治"
+   悪い例: "経済成長を優先すべきか、それとも安全保障か" / "賛成意見と反対意見がある"
 
 2. causal_structure（因果構造）: 1〜3ステップの因果連鎖
    - 矢印「→」でつないだ1文
@@ -70,7 +76,7 @@ async function generateAnalysis(
 
 JSON形式で返してください:
 {
-  "conflict_points": ["...", "..."],
+  "conflict_points": ["A vs B", "A vs B", "..."],
   "causal_structure": "A → B → C",
   "japan_impact": "..." または null
 }`;

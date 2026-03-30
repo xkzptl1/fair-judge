@@ -47,7 +47,7 @@ export function TopicCard({ topic }: Props) {
           <ul className="mb-4 space-y-1">
             {topic.conflictPoints.slice(0, 3).map((point, i) => (
               <li key={i} className="flex gap-2 text-sm leading-snug text-slate-300">
-                <span className="mt-0.5 shrink-0 text-rose-500/70">⚡</span>
+                <span className="mt-0.5 shrink-0 text-slate-600">↔</span>
                 {point}
               </li>
             ))}

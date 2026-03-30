@@ -59,7 +59,7 @@ export default async function TopicDetailPage({
           <ul className="space-y-2">
             {topic.conflictPoints.map((point, i) => (
               <li key={i} className="flex gap-2 text-sm leading-snug text-slate-200">
-                <span className="mt-0.5 shrink-0 text-rose-500/70">⚡</span>
+                <span className="mt-0.5 shrink-0 text-slate-600">↔</span>
                 {point}
               </li>
             ))}
