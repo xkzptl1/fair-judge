@@ -138,7 +138,7 @@ export async function getTopicDetail(id: string): Promise<TopicDetail | null> {
     mainIssues: (topic.main_issues as string[] | null) ?? [],
     conflictPoints: (topic.conflict_points as string[] | null) ?? [],
     causalStructure: (topic.causal_structure as string | null) ?? null,
-    japanImpact: (topic.japan_impact as string | null) ?? null,
+    japanImpact: (topic.japan_impact as string[] | null) ?? null,
     articleCount: topic.article_count,
     sourceCount: topic.source_count,
     lastUpdatedAt: topic.last_updated_at,

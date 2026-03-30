@@ -103,12 +103,19 @@ export default async function TopicDetailPage({
               <p className="text-sm leading-relaxed text-slate-300">{topic.causalStructure}</p>
             </div>
           )}
-          {topic.japanImpact && (
+          {topic.japanImpact && topic.japanImpact.length > 0 && (
             <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 日本への影響
               </p>
-              <p className="text-sm leading-relaxed text-slate-400">{topic.japanImpact}</p>
+              <ul className="space-y-1.5">
+                {topic.japanImpact.map((point, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-snug text-slate-400">
+                    <span className="mt-0.5 shrink-0 text-slate-600">•</span>
+                    {point}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

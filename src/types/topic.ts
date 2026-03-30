@@ -58,7 +58,7 @@ export interface TopicDetail {
   mainIssues: string[];
   conflictPoints: string[];
   causalStructure: string | null;
-  japanImpact: string | null;
+  japanImpact: string[] | null;
   articleCount: number;
   sourceCount: number;
   lastUpdatedAt: string;

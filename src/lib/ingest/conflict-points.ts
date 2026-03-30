@@ -23,7 +23,7 @@ interface ArticleRow {
 interface AnalysisOutput {
   conflict_points:  string[];
   causal_structure: string | null;
-  japan_impact:     string | null;
+  japan_impact:     string[] | null;
 }
 
 // ----------------------------------------------------------------
@@ -71,14 +71,22 @@ async function generateAnalysis(
    - 矢印「→」でつないだ1文
    - 例: "貿易摩擦 → 企業投資の縮小 → 雇用への影響"
 
-3. japan_impact（日本への影響）: 日本への具体的な影響を1〜2文
-   - 日本と直接関係がない場合はnullを返す
+3. japan_impact（日本への影響）: 日本への構造的インプリケーション
+   厳格なルール:
+   - ニュースの要約や元の事象の説明は禁止
+   - 「日本も影響を受けるかもしれない」などの曖昧な表現は禁止
+   - 同じ構造的リスクが日本にどう当てはまるかに絞ること
+   - 3〜5個の箇条書き、各1行・簡潔に
+   - 依存関係・政策リスク・構造的類似点を優先すること
+   良い例: "エネルギー輸入依存 → 同様の供給ショックリスク" / "老朽インフラ → 日本の潜在的障害リスク"
+   悪い例: "日本はこの状況に影響を受けるかもしれない" / "これはキューバで起きていることだが…"
+   - 日本と構造的に無関係な場合のみnullを返す
 
 JSON形式で返してください:
 {
   "conflict_points": ["A vs B", "A vs B", "..."],
   "causal_structure": "A → B → C",
-  "japan_impact": "..." または null
+  "japan_impact": ["箇条書き1", "箇条書き2", "..."] または null
 }`;
 
   const userPrompt = `トピック: ${topicTitle}\n\n記事一覧:\n${articleList}`;
@@ -97,10 +105,11 @@ JSON形式で返してください:
       ? parsed.causal_structure.trim()
       : null;
 
-  const japan_impact =
-    typeof parsed.japan_impact === 'string' && parsed.japan_impact.trim().length > 0
-      ? parsed.japan_impact.trim()
-      : null;
+  const japan_impact = Array.isArray(parsed.japan_impact)
+    ? (parsed.japan_impact as unknown[])
+        .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+        .slice(0, 5)
+    : null;
 
   return { conflict_points, causal_structure, japan_impact };
 }
@@ -127,7 +136,7 @@ export async function updateTopicAnalysis(
     title: string;
     conflict_points: string[] | null;
     causal_structure: string | null;
-    japan_impact: string | null;
+    japan_impact: string[] | null;
   };
 
   const alreadyDone =
