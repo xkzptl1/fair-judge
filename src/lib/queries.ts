@@ -20,7 +20,7 @@ export async function getTopics(): Promise<TopicSummary[]> {
   const [topicsResult, factCheckResult] = await Promise.all([
     supabase
       .from("topics")
-      .select("id, title, summary, article_count, source_count, last_updated_at, first_seen_at, category, overseas_ratio, stance_distribution")
+      .select("id, title, summary, article_count, source_count, last_updated_at, first_seen_at, category, overseas_ratio, stance_distribution, conflict_points")
       .eq("is_active", true)
       .order("last_updated_at", { ascending: false }),
 
@@ -53,6 +53,7 @@ export async function getTopics(): Promise<TopicSummary[]> {
     category: t.category ?? 'その他',
     overseasRatio: t.overseas_ratio ?? 0,
     firstSeenAt: t.first_seen_at,
+    conflictPoints: (t.conflict_points as string[] | null) ?? [],
   }));
 }
 
@@ -79,7 +80,7 @@ export async function getTopicDetail(id: string): Promise<TopicDetail | null> {
   const [topicResult, articlesResult, factChecksResult] = await Promise.all([
     supabase
       .from("topics")
-      .select("id, title, summary, main_issues, article_count, source_count, last_updated_at")
+      .select("id, title, summary, main_issues, conflict_points, article_count, source_count, last_updated_at")
       .eq("id", id)
       .single(),
 
@@ -135,6 +136,7 @@ export async function getTopicDetail(id: string): Promise<TopicDetail | null> {
     title: topic.title,
     summary: topic.summary,
     mainIssues: (topic.main_issues as string[] | null) ?? [],
+    conflictPoints: (topic.conflict_points as string[] | null) ?? [],
     articleCount: topic.article_count,
     sourceCount: topic.source_count,
     lastUpdatedAt: topic.last_updated_at,

@@ -27,6 +27,7 @@ export interface TopicSummary {
   hasFactCheck: boolean;
   category: string;
   overseasRatio: number;
+  conflictPoints: string[];
 }
 
 export interface ArticleWithClassification {
@@ -55,6 +56,7 @@ export interface TopicDetail {
   title: string;
   summary: string | null;
   mainIssues: string[];
+  conflictPoints: string[];
   articleCount: number;
   sourceCount: number;
   lastUpdatedAt: string;

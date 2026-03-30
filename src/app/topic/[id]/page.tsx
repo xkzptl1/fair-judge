@@ -50,15 +50,34 @@ export default async function TopicDetailPage({
         <p className="mt-2 text-sm leading-relaxed text-slate-400">{topic.summary}</p>
       )}
 
+      {/* Conflict points — primary value layer (Phase 2 Evolution) */}
+      <section className="mt-5 rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-3">
+        <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          解釈が分かれているポイント
+        </h2>
+        {topic.conflictPoints.length > 0 ? (
+          <ul className="space-y-2">
+            {topic.conflictPoints.map((point, i) => (
+              <li key={i} className="flex gap-2 text-sm leading-snug text-slate-200">
+                <span className="mt-0.5 shrink-0 text-rose-500/70">⚡</span>
+                {point}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-500">分析中...</p>
+        )}
+      </section>
+
       {/* Stance distribution */}
       <div className="mt-4">
         <p className="mb-1.5 text-xs text-slate-500">報道の傾向</p>
         <StanceBar distribution={topic.stanceDistribution} />
       </div>
 
-      {/* Conflict axis — core product element */}
-      {topic.mainIssues.length > 0 && (
-        <section className="mt-5 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
+      {/* Main issues (legacy field — shown only if conflict_points not yet generated) */}
+      {topic.conflictPoints.length === 0 && topic.mainIssues.length > 0 && (
+        <section className="mt-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             この話題の争点
           </h2>

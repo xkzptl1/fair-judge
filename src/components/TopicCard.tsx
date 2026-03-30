@@ -42,11 +42,18 @@ export function TopicCard({ topic }: Props) {
           {topic.title}
         </h2>
 
-        {/* Summary */}
-        {topic.summary && (
-          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-400">
-            {topic.summary}
-          </p>
+        {/* Conflict points — primary value layer */}
+        {topic.conflictPoints.length > 0 ? (
+          <ul className="mb-4 space-y-1">
+            {topic.conflictPoints.slice(0, 3).map((point, i) => (
+              <li key={i} className="flex gap-2 text-sm leading-snug text-slate-300">
+                <span className="mt-0.5 shrink-0 text-rose-500/70">⚡</span>
+                {point}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-4 text-xs text-slate-600">分析中...</p>
         )}
 
         {/* Discovery badges */}

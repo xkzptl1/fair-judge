@@ -11,6 +11,10 @@
     {
       "path": "/api/discover/age-topics/trigger",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/ingest/conflict-points/trigger",
+      "schedule": "30 1 * * *"
     }
   ]
 }

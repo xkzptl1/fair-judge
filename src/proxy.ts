@@ -24,6 +24,7 @@ const CRON_ROUTES = new Set([
   '/api/discover/enrich/trigger',
   '/api/discover/age-topics/trigger',
   '/api/discover/evaluate/trigger',
+  '/api/ingest/conflict-points/trigger',
 ]);
 
 const ADMIN_API_ROUTES = new Set([
@@ -113,5 +114,6 @@ export const config = {
     '/api/discover/evaluate/trigger',
     '/api/discover/candidates',
     '/api/discover/promote',
+    '/api/ingest/conflict-points/trigger',
   ],
 };
